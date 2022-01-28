@@ -109,8 +109,8 @@ def clean_training_set(vectors, labels, verbose = True):
     valid = np.logical_and(valid, valid_l)
     d = valid.size - vectors[valid].shape[0]
     if (d>0 and verbose):
-          print("Removed " + str(d) + " vectors for containig 'Nan' values")
- 
+        print("Removed " + str(d) + " out of " + valid.size + " vectors for containig 'Nan' values")
+        if()
     return vectors[valid], labels[valid]
 
 

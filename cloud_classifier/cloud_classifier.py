@@ -40,12 +40,15 @@ class cloud_classifier(cloud_trainer, data_handler):
             "input_files",
             "evaluation_sets",
             "label_files",
-            "eval_timestamps"
+            "eval_timestamps",
+            "refining_sets",
             }
         self.project_path = None
 
         super().init_class_variables(class_variables)
         super().__init__(**kwargs)
+
+
 
 
 
@@ -144,16 +147,24 @@ class cloud_classifier(cloud_trainer, data_handler):
         self.save_project_data()
 
 
-    def run_prediction_pipeline(self, verbose = True, create_filelist = True, evaluation = False):
+
+    def run_prediction_pipeline(self, verbose = True, create_filelist = True, evaluation = False,
+        refinment = False):
 
         if (create_filelist and not evaluation):
             self.extract_input_filelist(verbose = verbose)
 
+        # set input to the files from input.json
+        input_files = self.input_files
+        if (refinment):
+            # or to the data files from the refinment set
+            input_files = [s[0] for s in self.refining_sets]
+
         self.load_classifier(reload = True, verbose = verbose)
         self.apply_mask(verbose = verbose)
         self.set_reference_file(verbose = verbose)
-        self.label_files = []
-        for file in self.input_files:
+        label_files = []
+        for file in input_files:
             vectors, indices = self.create_input_vectors(file, verbose = verbose)
             probas = None
             if(self.classifier_type == "Forest"):
@@ -163,15 +174,41 @@ class cloud_classifier(cloud_trainer, data_handler):
             else:
                 labels = self.predict_labels(vectors, verbose = verbose)
 
-            filename = self.save_labels(labels, indices, file, probas, verbose = verbose)
-            self.label_files.append(filename)
+            filename = self.save_labels(labels, indices, file, probas, 
+                verbose = verbose, refinment = refinment)
+            label_files.append(filename)
 
-
+        if(refinment):
+            for x, lst in zip(label_files, self.refining_sets):
+                lst.append(x)       
+        else:
+            self.label_files = label_files
         self.save_project_data()
             #TODO: convert and save labels
 
 
 
+
+
+    def refine_forest_trainig(self, create_filelist = True, create_data = True):
+        """
+        Refines an already existing random forest classifier by training a new classifier on the 
+        old classifiers predicted probability values for each class
+
+        Parameters
+        ----------
+
+        """  
+        # create sub filelist out of the training data from which a refined classifier is trained 
+        if(create_filelist):
+            refinment_number = 24# TODO make variabel
+            satFile_pattern = fh.get_filename_pattern(self.sat_file_structure, self.timestamp_length)
+
+            _, self.refining_sets, _ = fh.split_sets(self.training_sets, satFile_pattern,
+             refinment_number, timesensitive = True)
+            self.save_project_data()
+        if(create_data):
+            self.run_prediction_pipeline(refinment = True, create_filelist = False)
 
 
 
@@ -393,9 +430,17 @@ class cloud_classifier(cloud_trainer, data_handler):
             print("Predicted Labels!")
         return labels
 
-    def save_labels(self, labels, indices, sat_file, probas = None, verbose = True):
+    def save_labels(self, labels, indices, sat_file, probas = None, verbose = True, refinment = False):
         name = fh.get_label_name(sat_file, self.sat_file_structure, self.label_file_structure, self.timestamp_length)
-        filepath = os.path.join(self.project_path, "labels", name)
+        
+        if(refinment):
+            folder = os.path.join("data", "refinement_data")
+            fh.create_subfolders(folder, self.project_path)
+            filepath = os.path.join(self.project_path, folder, name)
+
+        else:
+            filepath = os.path.join(self.project_path, "labels", name)
+
         self.make_xrData(labels, indices, NETCDF_out = filepath, prob_data = probas)
         if(verbose):
             print("Labels saved as " + name )

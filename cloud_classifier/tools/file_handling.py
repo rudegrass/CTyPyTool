@@ -118,36 +118,6 @@ def split_sets(dataset, satFile_pattern, eval_size = 24, timesensitive = True):
     return training_set, eval_set, timestamps
 
 
-def split_sets(dataset, satFile_pattern, eval_size = 24, timesensitive = True):
-    """
-    splits a set of data into an training and an evaluation set
-    """
-
-    eval_indeces = []
-    timestamps = []
-    if(timesensitive):
-        if(eval_size % 24 != 0):
-            raise ValueError("When using timesensitive splitting eval_size must be multiple of 24")
-        timesorted = [[] for _ in range(24)]
-        for i in range(len(dataset)):
-            sat_id = satFile_pattern.match(os.path.basename(dataset[i][0]))
-            if(sat_id):
-                timestamp = sat_id.group(1)
-                timestamps.append(timestamp)
-                hour = int(timestamp[-4:-2])
-                timesorted[hour].append(i)
-        n = int(eval_size/24)
-        for h in range(24):
-            eval_indeces += random.sample(timesorted[h], n)
-    else:
-        eval_indeces = random.sample(range(len(dataset)), eval_size)
-
-    training_indeces = [i for i in range(len(dataset)) if i not in eval_indeces]
-    eval_set = [dataset[i] for i in eval_indeces]
-    training_set = [dataset[i] for i in training_indeces]
-
-    return training_set, eval_set, timestamps
-
 
 
 def get_label_name(sat_file, sat_file_structure, lab_file_structure, timestamp_length):

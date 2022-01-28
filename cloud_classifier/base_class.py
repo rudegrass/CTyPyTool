@@ -20,6 +20,7 @@ class base_class:
             "evaluation_sets.json",
             "training_sets.json", 
             "label_files.json",
+            "refinment_files.json"
             ]
 
         dirname = os.path.dirname(__file__)
