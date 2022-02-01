@@ -149,7 +149,7 @@ class cloud_classifier(cloud_trainer, data_handler):
 
 
     def run_prediction_pipeline(self, verbose = True, create_filelist = True, evaluation = False,
-        for_refinment = False, refined_classifier):
+        for_refinment = False):
 
         if (create_filelist and not evaluation):
             self.extract_input_filelist(verbose = verbose)
@@ -396,7 +396,7 @@ class cloud_classifier(cloud_trainer, data_handler):
             print("Refinment training data created!")
         return v,l
 
-    def load_refinment_training_vectors():
+    def load_refinment_training_vectors(self, verbose = True):
         filename = os.path.join(self.project_path, "data", "training_data")
         v,l = super().load_training_set(filename)
         if (verbose):
