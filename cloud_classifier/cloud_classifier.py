@@ -364,7 +364,7 @@ class cloud_classifier(cloud_trainer, data_handler):
 
 
     def create_training_vectors(self, verbose = True):
-        v,l = super().create_training_data()
+        v,l = super().create_training_vectors()
         filename = os.path.join(self.project_path, "data", "training_data")
         self.save_training_set(v,l, filename)
         if (verbose):
@@ -382,11 +382,11 @@ class cloud_classifier(cloud_trainer, data_handler):
                 r_set = triplet.copy()
                 r_set[0] = r_set[2]   # set the previously predicted file as new input    
                 del r_set[2]
-                dataset.append[r_set]
+                dataset.append(r_set)
         if (not dataset):
             raise RuntimeError("Refinment data not created!")
         # create and safe training vectors
-        vectors, labels = super().create_training_data(training_sets = dataset, refinment = True)
+        vectors, labels = super().create_training_vectors(training_sets = dataset, refinment = True)
         filename = os.path.join(self.project_path, "data", "refinment_training_data")
         self.save_training_set(vectors, labels, filename)
         if (verbose):

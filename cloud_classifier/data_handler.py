@@ -112,7 +112,7 @@ class data_handler(base_class):
 
 
 
-    def create_training_set(self, training_sets = None, masked_indices = None, refinment = False):
+    def create_training_vectors(self, training_sets = None, masked_indices = None, refinment = False):
         """
         Creates a set of training vectors from NETCDF datasets.
 
