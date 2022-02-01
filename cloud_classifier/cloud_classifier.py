@@ -160,7 +160,7 @@ class cloud_classifier(cloud_trainer, data_handler):
             # or to the data files from the refinment set
             input_files = [s[0] for s in self.refining_sets]
 
-        self.load_classifier(reload = True, verbose = verbose)
+        self.load_classifier(verbose = verbose)
         self.apply_mask(verbose = verbose)
         self.set_reference_file(verbose = verbose)
         label_files = []
@@ -462,13 +462,18 @@ class cloud_classifier(cloud_trainer, data_handler):
             print("Input filelist created!")
 
 
-    def load_classifier(self, reload = False, verbose = True):
-        if(self.classifier is None or reload):
+    def load_classifier(self, verbose = True):
             filename = os.path.join(self.project_path, "data", "classifier")
             super().load_classifier(filename)
-            filename = os.path.join(self.project_path, "data", "masked_indices")
             if(verbose):
                 print("Classifier loaded!")
+
+    def load_refined_classifier(self, verbose = True):
+        filename = os.path.join(self.project_path, "data", "refined_classifier")
+        super().load_classifier(filename)
+        if(verbose):
+            print("Refined Classifier loaded!")
+
 
 
     def create_input_vectors(self, file, verbose = True):
