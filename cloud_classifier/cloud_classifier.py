@@ -149,14 +149,14 @@ class cloud_classifier(cloud_trainer, data_handler):
 
 
     def run_prediction_pipeline(self, verbose = True, create_filelist = True, evaluation = False,
-        refinment = False):
+        for_refinment = False, refined_classifier):
 
         if (create_filelist and not evaluation):
             self.extract_input_filelist(verbose = verbose)
 
         # set input to the files from input.json
         input_files = self.input_files
-        if (refinment):
+        if(for_refinment):
             # or to the data files from the refinment set
             input_files = [s[0] for s in self.refining_sets]
 
@@ -164,7 +164,7 @@ class cloud_classifier(cloud_trainer, data_handler):
         self.apply_mask(verbose = verbose)
         self.set_reference_file(verbose = verbose)
         label_files = []
-        for index,file in enumerate(input_files):
+        for file in input_files:
             try:
                 vectors, indices = self.create_input_vectors(file, verbose = verbose)
             except Exception as ex:
@@ -181,10 +181,10 @@ class cloud_classifier(cloud_trainer, data_handler):
                 labels = self.predict_labels(vectors, verbose = verbose)
 
             filename = self.save_labels(labels, indices, file, probas, 
-                verbose = verbose, refinment = refinment)
+                verbose = verbose, refinment = for_refinment)
             label_files.append(filename)
 
-        if(refinment):
+        if(for_refinment):
             for x, lst in zip(label_files, self.refining_sets):
                 if(len(lst)>=3):
                     lst[3] = x
@@ -194,7 +194,6 @@ class cloud_classifier(cloud_trainer, data_handler):
             self.label_files = label_files
         self.save_project_data()
             #TODO: convert and save labels
-
 
 
     def refine_forest_trainig(self, create_filelist = True, create_refinment_data = True,
@@ -208,7 +207,7 @@ class cloud_classifier(cloud_trainer, data_handler):
         0: Check if classifier already exists
         1: create training data
         2: extract feature vectors
-        3: train new classigier
+        3: train new classífier
         """  
         # create subset out of the training files from which a refined classifier is trained 
         if(create_filelist):
@@ -218,15 +217,15 @@ class cloud_classifier(cloud_trainer, data_handler):
             self.save_project_data()
         # create data for refinment training
         if(create_refinment_data):
-            self.run_prediction_pipeline(refinment = True, create_filelist = False)
+            self.run_prediction_pipeline(for_refinment = True, create_filelist = False)
         # create training data by sampling the predicted data
         if(create_training_vectors):
             v,l = self.create_refinment_training_vectors()
         else:
             v,l = self.load_refinment_training_vectors()
         if(train_classifier):
-            self.train_refinment_classifier()
-
+            self.train_refinment_classifier(v,l)
+        self.save_project_data()
 
 ######################    Evaluation  ######################################
 ############################################################################
