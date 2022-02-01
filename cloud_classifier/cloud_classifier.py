@@ -197,7 +197,8 @@ class cloud_classifier(cloud_trainer, data_handler):
 
 
 
-    def refine_forest_trainig(self, create_filelist = True, create_refinment_data = True, create_training_vectors = True):
+    def refine_forest_trainig(self, create_filelist = True, create_refinment_data = True,
+     create_training_vectors = True, train_classifier = True):
         """
         Refines an already existing random forest classifier by training a new classifier on the 
         old classifiers predicted probability values for each class
@@ -223,6 +224,9 @@ class cloud_classifier(cloud_trainer, data_handler):
             v,l = self.create_refinment_training_vectors()
         else:
             v,l = self.load_refinment_training_vectors()
+        if(train_classifier):
+            self.train_refinment_classifier()
+
 
 ######################    Evaluation  ######################################
 ############################################################################
@@ -413,6 +417,13 @@ class cloud_classifier(cloud_trainer, data_handler):
         self.save_classifier(filename)
         if (verbose):
             print("Classifier created!")
+
+    def train_refinment_classifier(self, vectors, labels, verbose = True):
+        super().train_classifier(vectors, labels)
+        filename = os.path.join(self.project_path, "data", "refined_classifier")
+        self.save_classifier(filename)
+        if (verbose):
+            print("Refined Classifier created!")
 
 
     def create_reference_file(self, input_file = None, verbose = True):
