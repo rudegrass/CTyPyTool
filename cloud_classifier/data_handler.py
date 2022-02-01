@@ -61,7 +61,8 @@ class data_handler(base_class):
             'mask_sea_coding',
             'reference_file',
             'georef_file',
-            'merge_list'
+            'merge_list',
+            "refining_sets",
             ]
 
         super().init_class_variables(class_variables)
@@ -111,7 +112,7 @@ class data_handler(base_class):
 
 
 
-    def create_training_set(self, training_sets = None, masked_indices = None):
+    def create_training_set(self, training_sets = None, masked_indices = None, refinment = False):
         """
         Creates a set of training vectors from NETCDF datasets.
 
@@ -141,9 +142,9 @@ class data_handler(base_class):
         if (masked_indices is None):
             masked_indices = self.masked_indices
         # Get vectors from all added training sets
-        vectors, labels = td.sample_training_sets(training_sets, self.samples, self.hours, masked_indices, 
-                                                self.input_channels, self.cloudtype_channel, 
-                                                verbose = self.verbose)
+        vectors, labels = td.sample_training_sets(training_sets, self.samples, masked_indices, 
+                                                self.input_channels, ct_channel = self.cloudtype_channel,
+                                                hours = [0], verbose = self.verbose, refinment = refinment)
 
         # Remove nan values
         vectors, labels = td.clean_training_set(vectors, labels)
@@ -162,7 +163,7 @@ class data_handler(base_class):
 
     def extract_labels(self, filename, indices = None, hour = 0):
         """
-        Extract labels from netCDF file at given indices and time
+        Extract labels f 0 netCDF file at given indices and time
 
         Parameters
         ----------
@@ -229,7 +230,10 @@ class data_handler(base_class):
             print("No mask indices given, using complete data set")
 
         vectors = td.extract_feature_vectors(sat_data, indices, hour, self.input_channels)
+        org_len = len(vectors)
         vectors, indices = td.clean_test_vectors(vectors, indices)
+        if(len(vectors)/float(org_len) < 0.5):
+            raise ValueError("Input  quality to bad for prediction")
         if (self.difference_vectors):
             vectors = td.create_difference_vectors(vectors, self.original_values)
 

@@ -112,8 +112,8 @@ def split_sets(dataset, satFile_pattern, eval_size = 24, timesensitive = True):
         eval_indeces = random.sample(range(len(dataset)), eval_size)
 
     training_indeces = [i for i in range(len(dataset)) if i not in eval_indeces]
-    eval_set = [dataset[i] for i in eval_indeces]
-    training_set = [dataset[i] for i in training_indeces]
+    eval_set = [dataset[i].copy() for i in eval_indeces]
+    training_set = [dataset[i].copy() for i in training_indeces]
 
     return training_set, eval_set, timestamps
 
@@ -123,8 +123,8 @@ def split_sets(dataset, satFile_pattern, eval_size = 24, timesensitive = True):
 def get_label_name(sat_file, sat_file_structure, lab_file_structure, timestamp_length):
     timestamp = get_timestamp(sat_file, sat_file_structure, timestamp_length)
     label_file = lab_file_structure.replace("TIMESTAMP", timestamp)
-    name, ext = os.path.splitext(label_file)
-    label_file = name + "_predicted" + ext
+    # name, ext = os.path.splitext(label_file)
+    # label_file = name + "_predicted" + ext
     return label_file
 
 

@@ -10,6 +10,6 @@
     "merge_list" : [],
     "difference_vectors": true,
     "original_values": true,
-    "samples": 100
-
+    "samples": 100,
+    "refinment_file_number": 48
 }

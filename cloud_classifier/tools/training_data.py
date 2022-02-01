@@ -10,7 +10,8 @@ Adds helper-methods for extracting machine learining data from NETCDF datasets
 """
 
 
-def sample_training_sets(training_sets, n, hours, indices, input_channels,  ct_channel = "CT", verbose = False):
+def sample_training_sets(training_sets, n, indices, input_channels = [],  ct_channel = "CT", hours = [0],  
+    verbose = False, refinment = False):
     start = time.time()
     """
     Creates a sample of training vectors from NETCDF datasets
@@ -30,11 +31,14 @@ def sample_training_sets(training_sets, n, hours, indices, input_channels,  ct_c
             i+=1
             print("Sampling dataset " + str(i) + "/" + str(len(training_sets)) )
         #read data
-        sat_data = xr.open_dataset(t_set[0])
+        input_data = xr.open_dataset(t_set[0])
         # check if indices have benn selected
         if (indices is None):
-            # if not: get all non-nan indices from the first layer specified in input channels
-            indices = np.where(~np.isnan(sat_data[input_channels[0]][0]))
+            if(refinment):
+                indices = np.where(~np.isnan(input_data["label_probability"]))
+            else:
+                # if not: get all non-nan indices from the first layer specified in input channels
+                indices = np.where(~np.isnan(input_data[input_channels[0]][0]))
             print("No mask indices given, using complete range of data")
 
         # extract traininig vectors for all hours
@@ -44,8 +48,12 @@ def sample_training_sets(training_sets, n, hours, indices, input_channels,  ct_c
         for h in hours:
             # get n random positions
             selection = get_samples(indices, n)
-            # get feature vectors for selection
-            v = extract_feature_vectors(sat_data, selection, h, input_channels)
+            if(refinment):
+                # get probabilty vecotrs of predicted data for selection
+                v = extract_probability_vectors(input_data, selection)
+            else:
+                # get feature vectors for selection
+                v = extract_feature_vectors(input_data, selection, h, input_channels)
             if(vectors is None):
                 # initalize with first batch of vectors
                 vectors = v
@@ -81,11 +89,19 @@ def get_samples(indices, n):
     return selection
 
 
+def extract_probability_vectors(data, indices, hour = 0):
+    """
+    Extract proabability vectors from random-forest predicted 
+    label-data at given indices and time
+    """ 
+    # Will need to change when Xarray creation is adjusted
+    vectors = np.array(data["label_probability"])[indices[0],indices[1]]
+    return vectors
 
 def extract_feature_vectors(data, indices, hour, input_channels): 
     """
     Extract training vectors from xr-dataset at given indices and time
-    
+
     """
     vectors = []
     for channel in input_channels:
@@ -109,8 +125,7 @@ def clean_training_set(vectors, labels, verbose = True):
     valid = np.logical_and(valid, valid_l)
     d = valid.size - vectors[valid].shape[0]
     if (d>0 and verbose):
-        print("Removed " + str(d) + " out of " + valid.size + " vectors for containig 'Nan' values")
-        if()
+        print("Removed " + str(d) + " out of " + str(valid.size) + " vectors for containig 'Nan' values")
     return vectors[valid], labels[valid]
 
 
@@ -149,7 +164,7 @@ def clean_test_vectors(vectors, indices):
     valid = ~np.isnan(vectors).any(axis=1)
     d = valid.size - vectors[valid].shape[0]    
     if (d>0):
-        print("Removed " + str(d) + " vectors for containig 'Nan' values")
+        print("Removed " + str(d) + " out of " + str(valid.size) + " vectors for containig 'Nan' values")
     return vectors[valid], np.array([indices[0][valid], indices[1][valid]])
 
 

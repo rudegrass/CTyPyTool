@@ -11,7 +11,7 @@ import base_class as bc
 
 import tools.file_handling as fh
 import tools.confusion as conf
-
+import copy
 
 import importlib
 importlib.reload(ct)
@@ -41,7 +41,7 @@ class cloud_classifier(cloud_trainer, data_handler):
             "evaluation_sets",
             "label_files",
             "eval_timestamps",
-            "refining_sets",
+            "refinment_file_number"
             }
         self.project_path = None
 
@@ -130,7 +130,7 @@ class cloud_classifier(cloud_trainer, data_handler):
     ######################    PIPELINE  ######################################
     ##########################################################################
 
-    def run_training_pipeline(self, verbose = True, create_filelist = True, evaluation = False, create_training_data = True):
+    def run_training_pipeline(self, verbose = True, create_filelist = True, evaluation = False, create_training_vectors = True):
         if (create_filelist):
             if (evaluation):
                 self.create_split_training_filelist()
@@ -139,10 +139,10 @@ class cloud_classifier(cloud_trainer, data_handler):
         if (self.reference_file is None):
             self.create_reference_file()
         self.apply_mask(verbose = verbose)
-        if(create_training_data):
-            v,l = self.create_training_set(verbose = verbose)
+        if(create_training_vectors):
+            v,l = self.create_training_vectors(verbose = verbose)
         else: 
-            v,l = self.load_training_set()
+            v,l = self.load_training_vectors()
         self.train_classifier(v,l, verbose = verbose)
         self.save_project_data()
 
@@ -164,8 +164,14 @@ class cloud_classifier(cloud_trainer, data_handler):
         self.apply_mask(verbose = verbose)
         self.set_reference_file(verbose = verbose)
         label_files = []
-        for file in input_files:
-            vectors, indices = self.create_input_vectors(file, verbose = verbose)
+        for index,file in enumerate(input_files):
+            try:
+                vectors, indices = self.create_input_vectors(file, verbose = verbose)
+            except Exception as ex:
+                print(ex)
+                print("Could not create training data. Skipping file " + file)
+                continue 
+
             probas = None
             if(self.classifier_type == "Forest"):
                 li = self.classifier.classes_
@@ -180,7 +186,10 @@ class cloud_classifier(cloud_trainer, data_handler):
 
         if(refinment):
             for x, lst in zip(label_files, self.refining_sets):
-                lst.append(x)       
+                if(len(lst)>=3):
+                    lst[3] = x
+                else:
+                    lst.append(x)       
         else:
             self.label_files = label_files
         self.save_project_data()
@@ -188,29 +197,32 @@ class cloud_classifier(cloud_trainer, data_handler):
 
 
 
-
-
-    def refine_forest_trainig(self, create_filelist = True, create_data = True):
+    def refine_forest_trainig(self, create_filelist = True, create_refinment_data = True, create_training_vectors = True):
         """
         Refines an already existing random forest classifier by training a new classifier on the 
         old classifiers predicted probability values for each class
 
         Parameters
         ----------
-
+        0: Check if classifier already exists
+        1: create training data
+        2: extract feature vectors
+        3: train new classigier
         """  
-        # create sub filelist out of the training data from which a refined classifier is trained 
+        # create subset out of the training files from which a refined classifier is trained 
         if(create_filelist):
-            refinment_number = 24# TODO make variabel
             satFile_pattern = fh.get_filename_pattern(self.sat_file_structure, self.timestamp_length)
-
             _, self.refining_sets, _ = fh.split_sets(self.training_sets, satFile_pattern,
-             refinment_number, timesensitive = True)
+             self.refinment_file_number, timesensitive = True)
             self.save_project_data()
-        if(create_data):
+        # create data for refinment training
+        if(create_refinment_data):
             self.run_prediction_pipeline(refinment = True, create_filelist = False)
-
-
+        # create training data by sampling the predicted data
+        if(create_training_vectors):
+            v,l = self.create_refinment_training_vectors()
+        else:
+            v,l = self.load_refinment_training_vectors()
 
 ######################    Evaluation  ######################################
 ############################################################################
@@ -351,15 +363,44 @@ class cloud_classifier(cloud_trainer, data_handler):
             print("Masked indices set!")
 
 
-    def create_training_set(self, verbose = True):
-        v,l = super().create_training_set()
+    def create_training_vectors(self, verbose = True):
+        v,l = super().create_training_data()
         filename = os.path.join(self.project_path, "data", "training_data")
         self.save_training_set(v,l, filename)
         if (verbose):
             print("Training data created!")
         return v,l
 
-    def load_training_set(self, verbose = True):
+    def create_refinment_training_vectors(self, verbose = True):
+        
+        # get correct files from refinment-filelist
+        dataset = []
+        for triplet in self.refining_sets:
+            if(len(triplet)<3):
+                print("Missing prediciton data, skipping " + triplet[0])
+            else:
+                r_set = triplet.copy()
+                r_set[0] = r_set[2]   # set the previously predicted file as new input    
+                del r_set[2]
+                dataset.append[r_set]
+        if (not dataset):
+            raise RuntimeError("Refinment data not created!")
+        # create and safe training vectors
+        vectors, labels = super().create_training_data(training_sets = dataset, refinment = True)
+        filename = os.path.join(self.project_path, "data", "refinment_training_data")
+        self.save_training_set(vectors, labels, filename)
+        if (verbose):
+            print("Refinment training data created!")
+        return v,l
+
+    def load_refinment_training_vectors():
+        filename = os.path.join(self.project_path, "data", "training_data")
+        v,l = super().load_training_set(filename)
+        if (verbose):
+            print("Refinment training data loaded!")
+        return v,l
+
+    def load_training_vectors(self, verbose = True):
         filename = os.path.join(self.project_path, "data", "training_data")
         v,l = super().load_training_set(filename)
         if (verbose):
@@ -379,7 +420,9 @@ class cloud_classifier(cloud_trainer, data_handler):
             if (self.training_sets is None):
                 raise ValueError("No reference file found")
             input_file = self.training_sets[0][1]
+        fh.create_subfolders("data", self.project_path)
         output_file = os.path.join(self.project_path, "data", "label_reference.nc")
+
         super().create_reference_file(input_file, output_file)
         self.save_project_data()
 
