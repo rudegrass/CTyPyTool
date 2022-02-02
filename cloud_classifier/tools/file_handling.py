@@ -110,8 +110,9 @@ def get_label_name(input_file, sat_file_structure, lab_file_structure, timestamp
     # get_filename if whole path is given
     name_split = os.path.split(input_file)
     file = name_split[1]
+    lab_pattern = fh.get_filename_pattern(lab_file_structure ,timestamp_length)
 
-    if(lab_file_structure.match(file)):
+    if(lab_pattern.match(file)):
         # input file is also label file, keep name
         return file
 
