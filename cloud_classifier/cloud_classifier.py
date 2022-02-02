@@ -208,12 +208,12 @@ class cloud_classifier(cloud_trainer, data_handler):
         self.save_project_data()
 
 
-    def run_prediciton(self, filelist, classifier, refined = False, verbose = True):
+    def run_prediciton(self, filelist, classifier, refined = False, verbose = True, savepath = None):
 
         label_files = []
         for file in filelist:
             if refined:
-
+                pass
             else:
                 try:
                     vectors, indices = self.create_input_vectors(file, verbose = verbose)
@@ -231,7 +231,7 @@ class cloud_classifier(cloud_trainer, data_handler):
                 labels = self.predict_labels(vectors, verbose = verbose)
 
             filename = self.save_labels(labels, indices, file, probas, 
-                verbose = verbose, refinment = refinment)
+                verbose = verbose, filepath = savepath)
 
             label_files.append(filename)
 
@@ -501,16 +501,13 @@ class cloud_classifier(cloud_trainer, data_handler):
             print("Predicted Labels!")
         return labels
 
-    def save_labels(self, labels, indices, sat_file, probas = None, verbose = True, filepath = None):
+    def save_labels(self, labels, indices, input_file, probas = None, verbose = True, filepath = None):
         if(not filepath):
             filepath = "labels"
         fh.create_subfolders(filepath, self.project_path)
 
-
-        name = fh.get_label_name(sat_file, self.sat_file_structure, self.label_file_structure, self.timestamp_length)
+        name = fh.get_label_name(input_file, self.sat_file_structure, self.label_file_structure, self.timestamp_length)
         filepath = os.path.join(self.project_path, filepath, name)
-
-
 
         self.make_xrData(labels, indices, NETCDF_out = filepath, prob_data = probas)
         if(verbose):
