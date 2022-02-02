@@ -147,31 +147,6 @@ class cloud_classifier(cloud_trainer, data_handler):
         self.save_project_data()
  
 
-    def run_prediction_pipeline(self, verbose = True, create_filelist = True, for_refinment = False):
-
-        if (create_filelist):
-            self.extract_input_filelist(verbose = verbose)
-        # set input files to the stored input files
-        input_files = self.input_files
-        if(for_refinment):
-            # or to the data files from the refinment set
-            input_files = [s[0] for s in self.refining_sets]
-
-        self.load_classifier(verbose = verbose)
-        self.apply_mask(verbose = verbose)
-        self.set_reference_file(verbose = verbose)
-        label_files = self.run_prediciton(filelist = input_files, classifier = self.classifier)
-        
-
-        if(for_refinment):
-            for x, lst in zip(label_files, self.refining_sets):
-                if(len(lst)>=3):
-                    lst[3] = x
-                else:
-                    lst.append(x)       
-        else:
-            self.label_files = label_files
-        self.save_project_data()
 
 
     def refine_forest_trainig(self, create_filelist = True, create_refinment_data = True,
@@ -189,7 +164,7 @@ class cloud_classifier(cloud_trainer, data_handler):
             self.save_project_data()
         # create data for refinment training
         if(create_refinment_data):
-            self.run_prediction_pipeline(for_refinment = True, create_filelist = False)
+            self.run_prediction_pipeline(refinment = True, create_filelist = False)
         # create training data by sampling the predicted data
         if(create_training_vectors):
             v,l = self.create_refinment_training_vectors()
@@ -201,24 +176,51 @@ class cloud_classifier(cloud_trainer, data_handler):
 
 
     def run_refined_prediciton(self, verbose = True, create_filelist = True, evaluation = False,
-        for_refinment = False):
+        refinment = False):
         pass
 
-
-
-    def run_prediciton(self, filelist, classifier, refined = False, verbose = True):
+    def run_prediction_pipeline(self, verbose = True, create_filelist = True, refinment = False):
 
         self.apply_mask(verbose = verbose)
         self.set_reference_file(verbose = verbose)
 
+        if (create_filelist):
+            self.extract_input_filelist(verbose = verbose)
+        # set input files to the stored input files
+        input_files = self.input_files
+        if(refinment):
+            # or set input files to the data files from the refinment set
+            input_files = [s[0] for s in self.refining_sets]
+
+        self.load_classifier(verbose = verbose)
+        self.apply_mask(verbose = verbose)
+        self.set_reference_file(verbose = verbose)
+        label_files = self.run_prediciton(filelist = input_files, classifier = self.classifier)
+
+        if(refinment):
+            for x, lst in zip(label_files, self.refining_sets):
+                if(len(lst)>=3):
+                    lst[3] = x
+                else:
+                    lst.append(x)       
+        else:
+            self.label_files = label_files
+        self.save_project_data()
+
+
+    def run_prediciton(self, filelist, classifier, refined = False, verbose = True):
+
         label_files = []
         for file in filelist:
-            try:
-                vectors, indices = self.create_input_vectors(file, verbose = verbose)
-            except Exception as ex:
-                print(ex)
-                print("Could not create training data. Skipping file " + file)
-                continue 
+            if refined:
+
+            else:
+                try:
+                    vectors, indices = self.create_input_vectors(file, verbose = verbose)
+                except Exception as ex:
+                    print(ex)
+                    print("Could not create training data. Skipping file " + file)
+                    continue 
 
             probas = None
             if(self.classifier_type == "Forest"):
@@ -229,7 +231,7 @@ class cloud_classifier(cloud_trainer, data_handler):
                 labels = self.predict_labels(vectors, verbose = verbose)
 
             filename = self.save_labels(labels, indices, file, probas, 
-                verbose = verbose, refinment = for_refinment)
+                verbose = verbose, refinment = refinment)
 
             label_files.append(filename)
 
@@ -486,8 +488,8 @@ class cloud_classifier(cloud_trainer, data_handler):
 
 
 
-    def create_input_vectors(self, file, verbose = True):
-        vectors, indices = super().create_input_vectors(file)
+    def create_input_vectors(self, file, refined = False, verbose = True):
+        vectors, indices = super().create_input_vectors(file, refined = refined)
         if(verbose):
                 print("Input vectors created!")
         return vectors, indices
@@ -499,16 +501,16 @@ class cloud_classifier(cloud_trainer, data_handler):
             print("Predicted Labels!")
         return labels
 
-    def save_labels(self, labels, indices, sat_file, probas = None, verbose = True, refinment = False):
-        name = fh.get_label_name(sat_file, self.sat_file_structure, self.label_file_structure, self.timestamp_length)
-        
-        if(refinment):
-            folder = os.path.join("data", "refinement_data")
-            fh.create_subfolders(folder, self.project_path)
-            filepath = os.path.join(self.project_path, folder, name)
+    def save_labels(self, labels, indices, sat_file, probas = None, verbose = True, filepath = None):
+        if(not filepath):
+            filepath = "labels"
+        fh.create_subfolders(filepath, self.project_path)
 
-        else:
-            filepath = os.path.join(self.project_path, "labels", name)
+
+        name = fh.get_label_name(sat_file, self.sat_file_structure, self.label_file_structure, self.timestamp_length)
+        filepath = os.path.join(self.project_path, filepath, name)
+
+
 
         self.make_xrData(labels, indices, NETCDF_out = filepath, prob_data = probas)
         if(verbose):

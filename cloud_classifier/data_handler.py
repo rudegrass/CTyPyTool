@@ -203,7 +203,7 @@ class data_handler(base_class):
 
 
 
-    def create_input_vectors(self, filename, hour=0):
+    def create_input_vectors(self, filename, refined = False, hour=0):
         """
         Extracts feature vectors from given NETCDF file at a certain hour.
 
@@ -222,14 +222,18 @@ class data_handler(base_class):
             Array containig the test vectors and another array containing the indices those vectors belong to
 
         """
-        sat_data = xr.open_dataset(filename)
+        data = xr.open_dataset(filename)
         indices = self.masked_indices
         if (indices is None):
             # get all non-nan indices from the first layer specified in input channels
-            indices = np.where(~np.isnan(sat_data[self.input_channels[0]][0]))
+            indices = np.where(~np.isnan(data[self.input_channels[0]][0]))
             print("No mask indices given, using complete data set")
 
-        vectors = td.extract_feature_vectors(sat_data, indices, hour, self.input_channels)
+        if (refined):
+            vectors = td.extract_probability_vectors(data, indices, hour)
+        else:
+            vectors = td.extract_feature_vectors(data, indices, hour, self.input_channels)
+            
         org_len = len(vectors)
         vectors, indices = td.clean_test_vectors(vectors, indices)
         if(len(vectors)/float(org_len) < 0.5):

@@ -27,18 +27,6 @@ def get_filename_pattern(structure, t_length):
     return re.compile(pattern)
 
 
-def get_timestamp(reference_file, structure, ts_length):
-    # get_filename if whole path is given
-    name_split = os.path.split(reference_file)
-    reference_file = name_split[1]
-    
-    # compute regex patterns
-    pattern = get_filename_pattern(structure, ts_length)
-
-    timestamp = pattern.match(reference_file)
-    if(not timestamp):
-        raise Exception("Refernce data file does not match specified naming pattern")
-    return timestamp.group(1)
 
 
 def generate_filelist_from_folder(folder, satFile_pattern, labFile_pattern, only_sataData = False):
@@ -63,10 +51,9 @@ def generate_filelist_from_folder(folder, satFile_pattern, labFile_pattern, only
     files = os.listdir(folder)
 
     if (only_sataData):
-        # return onky satelite date 
+        # return only satelite date 
         for file in files:
             sat_id = satFile_pattern.match(file)
-   
             if (sat_id):
                 sat_files[sat_id.group(1)] = os.path.join(folder, file)
         return list(sat_files.values())
@@ -119,15 +106,30 @@ def split_sets(dataset, satFile_pattern, eval_size = 24, timesensitive = True):
 
 
 
+def get_label_name(input_file, sat_file_structure, lab_file_structure, timestamp_length):
+    # get_filename if whole path is given
+    name_split = os.path.split(input_file)
+    file = name_split[1]
 
-def get_label_name(sat_file, sat_file_structure, lab_file_structure, timestamp_length):
-    timestamp = get_timestamp(sat_file, sat_file_structure, timestamp_length)
-    label_file = lab_file_structure.replace("TIMESTAMP", timestamp)
-    # name, ext = os.path.splitext(label_file)
-    # label_file = name + "_predicted" + ext
-    return label_file
+    if(lab_file_structure.match(file)):
+        # input file is also label file, keep name
+        return file
+
+    else:
+        # input file is sat file, extract timestamp and create new label name
+        timestamp = get_timestamp(input_file, sat_file_structure, timestamp_length)
+        label_file = lab_file_structure.replace("TIMESTAMP", timestamp)
+        return label_file
 
 
+def get_timestamp(file, structure, timestamp_length):
+    
+    # compute regex patterns
+    pattern = get_filename_pattern(structure, timestamp_length)
+    timestamp = pattern.match(file)
+    if(not timestamp):
+        raise Exception("Refernce data file does not match specified naming pattern")
+    return timestamp.group(1)
 
 
  
