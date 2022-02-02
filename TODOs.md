@@ -3,7 +3,7 @@
 #### Training data selection
 #### Trainnig data creation with old classifier
 #### Training vector creation
-#### Training of refined classifier
+#### Training f
 ###Doing
 ####Refinment Prediciton
 ####1: predict labels using "normal classifier"  
@@ -24,36 +24,35 @@
 
 ## Next Steps
 
--
+### Structure
 
-
-
-    ### Structure
-    - eval und plot settings in eigene file! parameter settings
-    - pipeline settings?
+    - Maybe: move all project parameters in own class  **parameters.py**
+    - simplify inheritance and class strucures
+    - make all filepaths sttable in json file
+    - reduce class variables
     
-
-    Reuduce data_handler/cc?
+    Reuduce data_handler/cc complexity by outsourcing into other files?
     - auslagern von funktionalität:
         - plotting (dh)
 
-    ###Architecture:
+    - eval und plot settings in eigene file! parameter settings
+    - pipeline settings?
+    
+###Architecture:
 
     
     - Python paket
         - dependencies
         - os-compatability
 
-    - Maybe: move all project parameters in own class  **parameters.py**
-    - make filepaths json
-    - Project parameters (filepaths i.e. stay in base clas)
 
-    ### Functionality:
+
+### Functionality:
 
     create evaluation set from folder!
 
     create inputset from folder
-    ### Training:
+### Training:
 
 
     - Neue Classifier:
