@@ -212,15 +212,12 @@ class cloud_classifier(cloud_trainer, data_handler):
 
         label_files = []
         for file in filelist:
-            if refined:
-                pass
-            else:
-                try:
-                    vectors, indices = self.create_input_vectors(file, verbose = verbose)
-                except Exception as ex:
-                    print(ex)
-                    print("Could not create training data. Skipping file " + file)
-                    continue 
+            try:
+                vectors, indices = self.create_input_vectors(file, verbose = verbose, refined = refined)
+            except Exception as ex:
+                print(ex)
+                print("Could not create training data. Skipping file " + file)
+                continue 
 
             probas = None
             if(self.classifier_type == "Forest"):
@@ -229,12 +226,9 @@ class cloud_classifier(cloud_trainer, data_handler):
                 labels = [li[i] for i in np.argmax(probas, axis = 1)]
             else:
                 labels = self.predict_labels(vectors, verbose = verbose)
-
             filename = self.save_labels(labels, indices, file, probas, 
                 verbose = verbose, filepath = savepath)
-
             label_files.append(filename)
-
         return label_files
 
 
