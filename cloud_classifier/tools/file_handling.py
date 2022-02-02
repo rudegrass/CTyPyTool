@@ -107,9 +107,10 @@ def split_sets(dataset, satFile_pattern, eval_size = 24, timesensitive = True):
 
 
 def get_label_name(input_file, sat_file_structure, lab_file_structure, timestamp_length):
-    # get_filename if whole path is given
+    # get filename if whole path is given
     name_split = os.path.split(input_file)
     file = name_split[1]
+    # compute regex patterns
     lab_pattern = get_filename_pattern(lab_file_structure ,timestamp_length)
 
     if(lab_pattern.match(file)):
@@ -118,7 +119,7 @@ def get_label_name(input_file, sat_file_structure, lab_file_structure, timestamp
 
     else:
         # input file is sat file, extract timestamp and create new label name
-        timestamp = get_timestamp(input_file, sat_file_structure, timestamp_length)
+        timestamp = get_timestamp(file, sat_file_structure, timestamp_length)
         label_file = lab_file_structure.replace("TIMESTAMP", timestamp)
         return label_file
 
