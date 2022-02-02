@@ -147,8 +147,7 @@ class cloud_classifier(cloud_trainer, data_handler):
         self.save_project_data()
  
 
-    def run_prediction_pipeline(self, verbose = True, create_filelist = True, for_refinment = False
-        ):
+    def run_prediction_pipeline(self, verbose = True, create_filelist = True, for_refinment = False):
 
         if (create_filelist):
             self.extract_input_filelist(verbose = verbose)
@@ -213,7 +212,7 @@ class cloud_classifier(cloud_trainer, data_handler):
         self.set_reference_file(verbose = verbose)
 
         label_files = []
-        for file in input_files:
+        for file in filelist:
             try:
                 vectors, indices = self.create_input_vectors(file, verbose = verbose)
             except Exception as ex:
