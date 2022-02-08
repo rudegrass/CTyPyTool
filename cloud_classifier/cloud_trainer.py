@@ -75,7 +75,7 @@ class cloud_trainer(base_class):
 
 
 
-    def train_classifier(self, training_vectors, training_labels):
+    def train_classifier(self, training_vectors, training_labels, refined = False):
         """
         Trains the classifier using previously created training_vectors
         
@@ -84,20 +84,37 @@ class cloud_trainer(base_class):
         m_depth : int
             Maximal depth of the decision tree
         """
+        # if(refined):
+        #     print("Training Forest Classifier")
+        #     self.classifier = RandomForestClassifier(n_estimators = self.n_estimators, max_depth = self.max_depth, 
+        #                                          ccp_alpha = self.ccp_alpha, min_samples_split = self.min_samples_split,
+        #                                          max_features = self.max_features)
 
-        if(self.classifier_type == "Tree"):
+        # if(refined):
+        #     print("Training Tree Classifier")
+        #     self.classifier = tree.DecisionTreeClassifier(max_depth = self.max_depth, ccp_alpha = self.ccp_alpha)
+       
+
+        if(refined):
+            print("Training SVM")
+            self.classifier = svm.SVC(probability=True, kernel='linear')
+        """
+
+        elif(self.classifier_type == "Tree"):
+            print("Training Tree Classifier")
             self.classifier = tree.DecisionTreeClassifier(max_depth = self.max_depth, ccp_alpha = self.ccp_alpha)
         elif(self.classifier_type == "Forest"): 
             self.classifier = RandomForestClassifier(n_estimators = self.n_estimators, max_depth = self.max_depth, 
                                                  ccp_alpha = self.ccp_alpha, min_samples_split = self.min_samples_split,
                                                  max_features = self.max_features)
+        """
         elif(self.classifier_type == "AdaBoost"):
             svc=SVC(probability=True, kernel='linear')
             self.classifier = AdaBoostClassifier(n_estimators =  self.n_estimators, base_estimator=svc)
 
         elif(self.classifier_type == "nuSVM"):
             self.classifier = svm.SVC(probability=True, kernel='linear')
-
+        """
 
         if(training_vectors is None or training_labels is None):
             print("No training data!")

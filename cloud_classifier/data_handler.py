@@ -149,7 +149,7 @@ class data_handler(base_class):
         # Remove nan values
         vectors, labels = td.clean_training_set(vectors, labels)
 
-        if (self.difference_vectors):
+        if (self.difference_vectors): # and not refinment
             # create difference vectors
             vectors = td.create_difference_vectors(vectors, self.original_values)
         
@@ -238,7 +238,7 @@ class data_handler(base_class):
         vectors, indices = td.clean_test_vectors(vectors, indices)
         if(len(vectors)/float(org_len) < 0.5):
             raise ValueError("Input  quality to bad for prediction")
-        if (self.difference_vectors):
+        if (self.difference_vectors ): #and not refined
             vectors = td.create_difference_vectors(vectors, self.original_values)
 
         return vectors, indices

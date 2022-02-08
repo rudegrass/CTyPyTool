@@ -168,11 +168,8 @@ class cloud_classifier(cloud_trainer, data_handler):
 
             for x, lst in zip(labels, self.refining_sets):
                 if(len(lst)>=3):
-                    print("fuging")
                     lst[2] = x
                 else:
-                    print("fooogint")
-
                     lst.append(x)       
 
         # create training data by sampling the predicted data
@@ -184,6 +181,38 @@ class cloud_classifier(cloud_trainer, data_handler):
             self.train_refinment_classifier(v,l)
         self.save_project_data()
 
+
+    def run_prediction_pipeline(self, create_filelist = True, verbose = True):
+        if (create_filelist):
+            #create a input filelist
+            self.extract_input_filelist(verbose = verbose)
+        # set input files to the stored input files
+
+        self.load_classifier(verbose = verbose)
+
+        self.label_files = self.run_prediction(filelist = self.input_files, classifier = self.classifier)
+
+        self.save_project_data()
+
+
+
+    def run_refined_prediciton(self, create_filelist = False, predict_base_labels = True, predict_refined_labels = True,  verbose = True):
+        if (create_filelist):
+            #create a input filelist
+            self.extract_input_filelist(verbose = verbose)
+        if(predict_base_labels):
+            savepath = os.path.join("labels", "base")
+            self.load_classifier(verbose = verbose)
+            self.label_files = self.run_prediction(filelist = self.input_files, classifier = self.classifier, savepath = savepath, verbose=verbose)
+
+        if(predict_refined_labels):
+            savepath = os.path.join("labels", "refined")
+            dataset = self.label_files
+            self.load_refined_classifier()
+            self.label_files = self.run_prediction(filelist = dataset, 
+                classifier = self.classifier, refined = True, savepath = savepath, verbose=verbose)
+
+        self.save_project_data()
 
 
 
@@ -210,42 +239,6 @@ class cloud_classifier(cloud_trainer, data_handler):
                 verbose = verbose, filepath = savepath)
             label_files.append(filename)
         return label_files
-
-
-
-
-    def run_refined_prediciton(self, create_filelist = True, 
-        predict_base_labels = True, predict_refined_labels = True, evaluation = False,  verbose = True):
-
-        if(predict_base_labels):
-            savepath = os.path.join("labels", "base")
-            self.run_prediction_pipeline(create_filelist = create_filelist, savepath = savepath)
-
-
-
-
-
-    def run_prediction_pipeline(self, create_filelist = True, verbose = True):
-        if (create_filelist):
-            #create and input filelist
-            self.extract_input_filelist(verbose = verbose)
-        # set input files to the stored input files
-
-        self.load_classifier(verbose = verbose)
-
-        self.label_files = label_files = self.run_prediction(filelist = self.input_files, classifier = self.classifier)
-
-        self.save_project_data()
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -327,7 +320,7 @@ class cloud_classifier(cloud_trainer, data_handler):
             print("Classifier created!")
 
     def train_refinment_classifier(self, vectors, labels, verbose = True):
-        super().train_classifier(vectors, labels)
+        super().train_classifier(vectors, labels, refined = True)
         filename = os.path.join(self.project_path, "data", "refined_classifier")
         self.save_classifier(filename)
         if (verbose):
