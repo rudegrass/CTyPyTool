@@ -11,7 +11,7 @@ Adds helper-methods for extracting machine learining data from NETCDF datasets
 
 
 def sample_training_sets(training_sets, n, indices, input_channels = [],  ct_channel = "CT", hours = [0],  
-    verbose = False, refinment = False):
+    verbose = False, refined = False):
     start = time.time()
     """
     Creates a sample of training vectors from NETCDF datasets
@@ -34,7 +34,7 @@ def sample_training_sets(training_sets, n, indices, input_channels = [],  ct_cha
         input_data = xr.open_dataset(t_set[0])
         # check if indices have benn selected
         if (indices is None):
-            if(refinment):
+            if(refined):
                 indices = np.where(~np.isnan(input_data["label_probability"]))
             else:
                 # if not: get all non-nan indices from the first layer specified in input channels
@@ -48,7 +48,7 @@ def sample_training_sets(training_sets, n, indices, input_channels = [],  ct_cha
         for h in hours:
             # get n random positions
             selection = get_samples(indices, n)
-            if(refinment):
+            if(refined):
                 # get probabilty vecotrs of predicted data for selection
                 v = extract_probability_vectors(input_data, selection)
             else:

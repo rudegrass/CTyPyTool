@@ -30,6 +30,7 @@
     - simplify inheritance and class strucures
     - make all filepaths sttable in json file
     - reduce class variables
+    - make all filelist use project folder as reference (and not notebook folder)
     
     Reuduce data_handler/cc complexity by outsourcing into other files?
     - auslagern von funktionalität:

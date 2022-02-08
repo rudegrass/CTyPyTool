@@ -9,6 +9,9 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.ensemble import AdaBoostClassifier
 from sklearn.model_selection import train_test_split
 from sklearn.feature_selection import SelectKBest, chi2
+from sklearn.pipeline import make_pipeline
+from sklearn.preprocessing import StandardScaler
+from sklearn.svm import SVC
 
 import base_class
 import importlib
@@ -38,6 +41,7 @@ class cloud_trainer(base_class):
             'feature_preselection',
             'max_features',
             'min_samples_split',
+            'refinment_classifier_type'
             }
         
         self.classifier = None      
@@ -46,20 +50,6 @@ class cloud_trainer(base_class):
         super().__init__( **kwargs)
    
 
-
-
-    # def set_default_parameters(self, reset_data = False):
-    #     ### paramaeters
-    #     self.classifier_type = "Tree"
-    #     self.max_depth = 20
-    #     self.ccp_alpha = 0
-    #     self.feature_preselection = False
-    #     self.n_estimators = 75
-
-    #     if (reset_data):
-    #         self.pred_labels = None
-    #         self.classifier = None
-    #         self.feat_select = None
 
 
     def fit_feature_selection(self, training_vectors, training_labels, k = 20):
@@ -95,36 +85,35 @@ class cloud_trainer(base_class):
         #     self.classifier = tree.DecisionTreeClassifier(max_depth = self.max_depth, ccp_alpha = self.ccp_alpha)
        
 
-        if(refined):
-            print("Training SVM")
-            self.classifier = RandomForestClassifier(n_estimators = self.n_estimators, max_depth = self.max_depth, 
-                                                 ccp_alpha = self.ccp_alpha, min_samples_split = self.min_samples_split,
-                                                 max_features = self.max_features)
+        if(training_vectors is None or training_labels is None):
+            raise ValueError("Missing Training data")
+            return
 
-        elif(self.classifier_type == "Tree"):
+
+        classifier_type = self.classifier_type
+        if(refined):
+            classifier_type = self.refinment_classifier_type
+
+
+        if(classifier_type == "Tree"):
             print("Training Tree Classifier")
             self.classifier = tree.DecisionTreeClassifier(max_depth = self.max_depth, ccp_alpha = self.ccp_alpha)
-        elif(self.classifier_type == "Forest"): 
+        elif(classifier_type == "Forest"): 
+            print("Training Forest Classifier")
             self.classifier = RandomForestClassifier(n_estimators = self.n_estimators, max_depth = self.max_depth, 
                                                  ccp_alpha = self.ccp_alpha, min_samples_split = self.min_samples_split,
                                                  max_features = self.max_features)
-        """
-        elif(self.classifier_type == "AdaBoost"):
-            svc=SVC(probability=True, kernel='linear')
-            self.classifier = AdaBoostClassifier(n_estimators =  self.n_estimators, base_estimator=svc)
+        elif(classifier_type == "SVM"): 
+            print("Training SVM")
+            self.classifier = make_pipeline(StandardScaler(), SVC(gamma='auto'))
+        
+        else:
+            raise ValueError("Classifier type not valid")
 
-        elif(self.classifier_type == "nuSVM"):
-            self.classifier = svm.SVC(probability=True, kernel='linear')
-        """
-
-        if(training_vectors is None or training_labels is None):
-            print("No training data!")
-            return
 
         if(self.feature_preselection and not (self.feat_select is None)):
             training_vectors = self.apply_feature_selection(training_vectors)
         self.classifier.fit(training_vectors, training_labels)
-
 
 
 
@@ -195,7 +184,7 @@ class cloud_trainer(base_class):
             The data of the corresponding labels, if given  
 
         hour : int
-            0-23, hour of the day at which the data sets are read
+            0-23, hour of the day at wh the data sets are read
         """
         if(self.classifier is None):
             print("No classifer trained or loaded")
@@ -227,7 +216,7 @@ class cloud_trainer(base_class):
         Parameters
         ----------
         filename : string
-            Name of the file into which the classifier is saved.
+            Name of the file into wh the classifier is saved.
         """
         dump(self.classifier, filename)
 

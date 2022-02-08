@@ -63,6 +63,7 @@ class data_handler(base_class):
             'georef_file',
             'merge_list',
             "refining_sets",
+            "refinment_difference_vectors"
             ]
 
         super().init_class_variables(class_variables)
@@ -112,7 +113,7 @@ class data_handler(base_class):
 
 
 
-    def create_training_vectors(self, training_sets = None, masked_indices = None, refinment = False):
+    def create_training_vectors(self, training_sets = None, masked_indices = None, refined = False):
         """
         Creates a set of training vectors from NETCDF datasets.
 
@@ -144,14 +145,11 @@ class data_handler(base_class):
         # Get vectors from all added training sets
         vectors, labels = td.sample_training_sets(training_sets, self.samples, masked_indices, 
                                                 self.input_channels, ct_channel = self.cloudtype_channel,
-                                                hours = [0], verbose = self.verbose, refinment = refinment)
+                                                hours = [0], verbose = self.verbose, refined = refined)
 
         # Remove nan values
         vectors, labels = td.clean_training_set(vectors, labels)
-
-        if (self.difference_vectors): # and not refinment
-            # create difference vectors
-            vectors = td.create_difference_vectors(vectors, self.original_values)
+        vectors = self.difference_vector_creation(vectors, refined = refined)
         
         if (self.nwcsaf_in_version == 'auto'):
             self.nwcsaf_in_version = self.check_nwcsaf_version(labels, verbose = False)
@@ -238,9 +236,7 @@ class data_handler(base_class):
         vectors, indices = td.clean_test_vectors(vectors, indices)
         if(len(vectors)/float(org_len) < 0.5):
             raise ValueError("Input  quality to bad for prediction")
-        if (self.difference_vectors ): #and not refined
-            vectors = td.create_difference_vectors(vectors, self.original_values)
-
+        vectors = self.difference_vector_creation(vectors, refined = refined)
         return vectors, indices
 
 
@@ -303,7 +299,12 @@ class data_handler(base_class):
         return out
 
  
-
+    def difference_vector_creation(self, vectors, refined = False):
+        dv = (refined and self.refinment_difference_vectors) or (not refined and self.difference_vectors)
+        if(dv):
+            print("Creating difference_vectors")
+            return  td.create_difference_vectors(vectors, self.original_values)
+        return vectors
 
     # def save_filelist(self, filename):
     #     """

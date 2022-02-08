@@ -291,7 +291,7 @@ class cloud_classifier(cloud_trainer, data_handler):
         if (not dataset):
             raise RuntimeError("Refinment data not created!")
         # create and safe training vectors
-        v,l = super().create_training_vectors(training_sets = dataset, refinment = True)
+        v,l = super().create_training_vectors(training_sets = dataset, refined = True)
         filename = os.path.join(self.project_path, "data", "refinment_training_data")
         self.save_training_set(v, l, filename)
         if (verbose):
