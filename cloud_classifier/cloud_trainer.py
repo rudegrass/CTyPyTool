@@ -97,8 +97,9 @@ class cloud_trainer(base_class):
 
         if(refined):
             print("Training SVM")
-            self.classifier = svm.SVC(probability=True, kernel='linear')
-        """
+            self.classifier = RandomForestClassifier(n_estimators = self.n_estimators, max_depth = self.max_depth, 
+                                                 ccp_alpha = self.ccp_alpha, min_samples_split = self.min_samples_split,
+                                                 max_features = self.max_features)
 
         elif(self.classifier_type == "Tree"):
             print("Training Tree Classifier")
