@@ -1,17 +1,18 @@
-import json
+from cloud_trainer import cloud_trainer
+from data_handler import data_handler
+from base_class import base_class
+from joblib import dump, load
+
 import os
 import numpy as np
 import shutil
-import re
 from pathlib import Path
 
 import cloud_trainer as ct
 import data_handler as dh
 import base_class as bc
-
 import tools.file_handling as fh
 import tools.confusion as conf
-import copy
 
 import importlib
 importlib.reload(ct)
@@ -19,35 +20,26 @@ importlib.reload(dh)
 importlib.reload(bc)
 importlib.reload(fh)
 
-from cloud_trainer import cloud_trainer
-from data_handler import data_handler
-from base_class import base_class
-from joblib import dump, load
-
 
 class cloud_classifier(cloud_trainer, data_handler):
     """
-    
     bla PIPELINE
-
     """
 
-    def __init__ (self, **kwargs):
-
-
+    def __init__(self, **kwargs):
         class_variables =  {
             "input_source_folder",
             "input_files",
             "evaluation_sets",
             "label_files",
             "eval_timestamps",
-            "refinment_file_number"
+            "refinement_file_number"
             }
         self.project_path = None
 
         super().init_class_variables(class_variables)
         super().__init__(**kwargs)
-
+        
 
 
 
@@ -144,7 +136,7 @@ class cloud_classifier(cloud_trainer, data_handler):
 
 
 
-    def refine_forest_trainig(self, create_filelist = True, create_refinment_data = True,
+    def refine_forest_trainig(self, create_filelist = True, create_refinement_data = True,
      create_training_vectors = True, train_classifier = True, verbose = True):
         """
         Refines an already existing random forest classifier by training a new classifier on the 
@@ -155,11 +147,11 @@ class cloud_classifier(cloud_trainer, data_handler):
         if(create_filelist):
             satFile_pattern = fh.get_filename_pattern(self.sat_file_structure, self.timestamp_length)
             _, self.refining_sets, _ = fh.split_sets(self.training_sets, satFile_pattern,
-             self.refinment_file_number, timesensitive = True)
+             self.refinement_file_number, timesensitive = True)
             self.save_project_data()
-        # create data for refinment training
-        if(create_refinment_data):
-            savepath = os.path.join("data", "refinment_data")
+        # create data for refinement training
+        if(create_refinement_data):
+            savepath = os.path.join("data", "refinement_data")
             input_files = [s[0] for s in self.refining_sets]
             self.load_classifier(verbose = verbose)
 
@@ -174,11 +166,11 @@ class cloud_classifier(cloud_trainer, data_handler):
 
         # create training data by sampling the predicted data
         if(create_training_vectors):
-            v,l = self.create_refinment_training_vectors()
+            v,l = self.create_refinement_training_vectors()
         else:
-            v,l = self.load_refinment_training_vectors()
+            v,l = self.load_refinement_training_vectors()
         if(train_classifier):
-            self.train_refinment_classifier(v,l)
+            self.train_refinement_classifier(v,l)
         self.save_project_data()
 
 
@@ -229,7 +221,7 @@ class cloud_classifier(cloud_trainer, data_handler):
                 continue 
 
             probas = None
-            if(self.classifier_type == "Forest"):
+            if(self.classifier_type == "Forest" and not refined):
                 li = self.classifier.classes_
                 probas = self.get_forest_proabilties(vectors)
                 labels = [li[i] for i in np.argmax(probas, axis = 1)]
@@ -276,9 +268,9 @@ class cloud_classifier(cloud_trainer, data_handler):
             print("Training data created!")
         return v,l
 
-    def create_refinment_training_vectors(self, verbose = True):
+    def create_refinement_training_vectors(self, verbose = True):
         
-        # get correct files from refinment-filelist
+        # get correct files from refinement-filelist
         dataset = []
         for triplet in self.refining_sets:
             if(len(triplet)<3):
@@ -289,20 +281,20 @@ class cloud_classifier(cloud_trainer, data_handler):
                 del r_set[2]
                 dataset.append(r_set)
         if (not dataset):
-            raise RuntimeError("Refinment data not created!")
+            raise RuntimeError("Refinement data not created!")
         # create and safe training vectors
         v,l = super().create_training_vectors(training_sets = dataset, refined = True)
-        filename = os.path.join(self.project_path, "data", "refinment_training_data")
+        filename = os.path.join(self.project_path, "data", "refinement_training_data")
         self.save_training_set(v, l, filename)
         if (verbose):
-            print("Refinment training data created!")
+            print("Refinement training data created!")
         return v,l
 
-    def load_refinment_training_vectors(self, verbose = True):
+    def load_refinement_training_vectors(self, verbose = True):
         filename = os.path.join(self.project_path, "data", "training_data")
         v,l = super().load_training_set(filename)
         if (verbose):
-            print("Refinment training data loaded!")
+            print("Refinement training data loaded!")
         return v,l
 
     def load_training_vectors(self, verbose = True):
@@ -319,13 +311,12 @@ class cloud_classifier(cloud_trainer, data_handler):
         if (verbose):
             print("Classifier created!")
 
-    def train_refinment_classifier(self, vectors, labels, verbose = True):
+    def train_refinement_classifier(self, vectors, labels, verbose = True):
         super().train_classifier(vectors, labels, refined = True)
         filename = os.path.join(self.project_path, "data", "refined_classifier")
         self.save_classifier(filename)
         if (verbose):
             print("Refined Classifier created!")
-
 
     def create_reference_file(self, input_file = None, verbose = True):
         if (input_file is None):
@@ -374,7 +365,8 @@ class cloud_classifier(cloud_trainer, data_handler):
         super().load_classifier(filename)
         if(verbose):
             print("Refined Classifier loaded!")
-
+        super().difference_vector_creation(vectors, refined = False)
+        a = np.array()
 
 
     def create_input_vectors(self, file, refined = False, verbose = True):
@@ -450,9 +442,6 @@ class cloud_classifier(cloud_trainer, data_handler):
         all_labels, all_truth = fh.clean_eval_data(all_labels, all_truth)
 
         self.save_coorMatrix( label_data = all_labels, truth_data = all_truth, filename = "Overall_CoocurrenceMatrix.png", show = show)
-
-
-
 
 
     def save_comparePlot(self, label_file, truth_file, timestamp, compare_projects= None,

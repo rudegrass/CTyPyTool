@@ -1,22 +1,20 @@
+from base_class import base_class
+
 import numpy as np
 import xarray as xr
-import random
 import h5py
-import re
-import os
 from joblib import dump, load
 import warnings
 
 
 import matplotlib.pyplot as plt
-import matplotlib.cm as cm
 import cartopy
 import cartopy.crs as ccrs
+
 
 import tools.training_data as td
 import tools.file_handling as fh
 import tools.nwcsaf_tools as nwc
-import base_class
 import tools.confusion as conf
 
 #
@@ -25,31 +23,26 @@ importlib.reload(td)
 importlib.reload(fh)
 importlib.reload(nwc)
 
-from base_class import base_class
-from cloud_trainer import cloud_trainer
-   
-
 
 class data_handler(base_class):
 
     """
-    Class that faciltates data extraction and processing for the use in machine learning from NETCDF-satelite data.
+    Class that faciltates data extraction and processing for
+    the use in machine learning from NETCDF-satelite data.
     """
-
-
 
     def __init__(self, **kwargs):
 
-        #self.set_default_parameters(reset_data = True)
+        # self.set_default_parameters(reset_data = True)
         class_variables = [
-            "data_source_folder", 
+            "data_source_folder",
             "timestamp_length",
             "sat_file_structure",
             "label_file_structure",
-            'difference_vectors', 
-            'original_values', 
-            'samples', 
-            'hours', 
+            'difference_vectors',
+            'original_values',
+            'samples',
+            'hours',
             'input_channels',
             'cloudtype_channel',
             'nwcsaf_in_version',
@@ -64,50 +57,53 @@ class data_handler(base_class):
             'merge_list',
             "refining_sets",
             "refinment_difference_vectors"
-            ]
+        ]
+
 
         super().init_class_variables(class_variables)
-        super().__init__( **kwargs)
+        super().__init__(**kwargs)
         self.masked_indices = None
 
     def set_indices_from_mask(self, filename, selected_mask):
         """
         Sets indices according to a selected mask
 
-        Reads mask-data from h5 file and converts it into xr.array. From this data the indices corresponding
-        to the selected mask are extracted and saved
+        Reads mask-data from h5 file and converts it into xr.array.
+        From this data the indices corresponding to the selected mask
+        are extracted and saved
 
-            
+
         selected_mask : string
             Key of mask to be used
 
         """
+
         mask_data = h5py.File(filename, 'r')
-        m = xr.DataArray([row for row in mask_data[selected_mask]], name = selected_mask)
+        m = xr.DataArray([row for row in mask_data[selected_mask]], name=selected_mask)
         self.masked_indices = np.where(m == self.mask_sea_coding)
 
         self.mask = [filename, selected_mask]
         return self.masked_indices
 
 
-
     def add_training_files(self, filename_data, filename_labels):
         """
         Takes filenames of satelite data and according labels and adds it to the data_handler.
-        
+
         Parameters
         ----------
         filename_data : string
             Filename of the sattelite data
-            
+
         filename_labels : string
             Filename of the label dataset
 
         """
+
         if (self.training_sets is None):
             self.training_sets = []
         self.training_sets.append([filename_data, filename_labels])
-        if reference_file is None:
+        if self.reference_file is None:
             self.reference_file = filename_labels
         return
 
@@ -117,9 +113,8 @@ class data_handler(base_class):
         """
         Creates a set of training vectors from NETCDF datasets.
 
-        Samples a set of satellite data and corresponding labels at samples random positions 
-        for each hour specified. 
-
+        Samples a set of satellite data and corresponding labels at samples random positions
+        for each hour specified.
 
         Parameters
         ----------
@@ -134,6 +129,7 @@ class data_handler(base_class):
             Arrays containig the training vectors and corresponding labels
 
         """
+
         if (training_sets is None):
             training_sets = self.training_sets
         if(training_sets is None):
@@ -143,17 +139,17 @@ class data_handler(base_class):
         if (masked_indices is None):
             masked_indices = self.masked_indices
         # Get vectors from all added training sets
-        vectors, labels = td.sample_training_sets(training_sets, self.samples, masked_indices, 
-                                                self.input_channels, ct_channel = self.cloudtype_channel,
-                                                hours = [0], verbose = self.verbose, refined = refined)
+        vectors, labels = td.sample_training_sets(training_sets, self.samples, masked_indices,
+            self.input_channels, ct_channel = self.cloudtype_channel,
+            hours = [0], verbose = self.verbose, refined = refined)
 
         # Remove nan values
         vectors, labels = td.clean_training_set(vectors, labels)
         vectors = self.difference_vector_creation(vectors, refined = refined)
-        
+
         if (self.nwcsaf_in_version == 'auto'):
             self.nwcsaf_in_version = self.check_nwcsaf_version(labels, verbose = False)
-        
+
         labels = fh.switch_nwcsaf_version(labels, self.nwcsaf_out_version, self.nwcsaf_in_version)
         td.merge_labels(labels, self.merge_list)
         return vectors, labels
@@ -167,7 +163,7 @@ class data_handler(base_class):
         ----------
         filename : string
             Filename of the label data
-        
+
         indices : tuple of arrays
             tuple of int arrays specifing the indices of the returned labels
 
@@ -176,16 +172,15 @@ class data_handler(base_class):
 
         Returns
         -------
-        numpy array 
+        numpy array
             labels at the specified indices and time
 
-        """ 
+        """
         if (indices is None):
             # get all non-nan indices from the first layer specified in input channels
-            if (not self.masked_indices is None):
+            if (self.masked_indices is not None):
                 indices = self.masked_indices
                 print("No indices specified, using mask indices")
-
             else:
                 print("No mask indices given, using complete data set")
 
@@ -201,7 +196,7 @@ class data_handler(base_class):
 
 
 
-    def create_input_vectors(self, filename, refined = False, hour=0):
+    def create_input_vectors(self, filename, refined=False, hour=0):
         """
         Extracts feature vectors from given NETCDF file at a certain hour.
 
@@ -231,7 +226,7 @@ class data_handler(base_class):
             vectors = td.extract_probability_vectors(data, indices, hour)
         else:
             vectors = td.extract_feature_vectors(data, indices, hour, self.input_channels)
-            
+
         org_len = len(vectors)
         vectors, indices = td.clean_test_vectors(vectors, indices)
         if(len(vectors)/float(org_len) < 0.5):
@@ -242,10 +237,10 @@ class data_handler(base_class):
 
 
 
-    def make_xrData(self, labels, indices, reference_file = None, NETCDF_out = None, 
+    def make_xrData(self, labels, indices, reference_file = None, NETCDF_out = None,
             prob_data = None):
         """
-        Transforms a set of predicted labels into xarray-dataset  
+        Transforms a set of predicted labels into xarray-dataset
 
         Parameters
         ----------
@@ -253,18 +248,18 @@ class data_handler(base_class):
             Int array of label data
 
         indices : tuple of array-like
-            Indices of the given labels in respect to the coordiantes from a reference file  
+            Indices of the given labels in respect to the coordiantes from a reference file
 
         reference_file : string
             (Optional) filename of a NETCDF file with the same scope as the label data.
             This field is requiered if no refernce file has been created before!
-        
+
         NETCDF_out : string
             (Optional) If specified, the labels will be written to a NETCDF file with this name
 
         Returns
         -------
-        xarray dataset 
+        xarray dataset
             labels in the form of an xarray dataset
 
         """
@@ -276,10 +271,10 @@ class data_handler(base_class):
 
         out = xr.open_dataset(reference_file)
 
-        shape = out[self.cloudtype_channel][0].shape # 0 being the hour
+        shape = out[self.cloudtype_channel][0].shape  # 0 being the hour
         new_data = np.empty(shape)
         new_data[:] = np.nan
-        new_data[indices[0],indices[1]] = labels
+        new_data[indices[0], indices[1]] = labels
         out[self.cloudtype_channel][0] = new_data
 
 
@@ -287,24 +282,25 @@ class data_handler(base_class):
             shape += (len(prob_data[0]), )
             new_data = np.empty(shape)
             new_data[:] = np.nan
-            new_data[indices[0],indices[1]] = prob_data
+            new_data[indices[0], indices[1]] = prob_data
 
             new_dims = out[self.cloudtype_channel][0].dims
             new_dims += ("labels",)
             out["label_probability"] = (new_dims, new_data)
 
-        if (not NETCDF_out is None):
+        if (NETCDF_out is not None):
             fh.write_NETCDF(out, NETCDF_out)
 
         return out
 
- 
+
     def difference_vector_creation(self, vectors, refined = False):
         dv = (refined and self.refinment_difference_vectors) or (not refined and self.difference_vectors)
         if(dv):
             print("Creating difference_vectors")
-            return  td.create_difference_vectors(vectors, self.original_values)
-        return vectors
+            return td.create_difference_vectors(vectors, self.original_values)
+        else:
+            return vectors
 
     # def save_filelist(self, filename):
     #     """
@@ -343,7 +339,7 @@ class data_handler(base_class):
     def load_training_set(self, filename):
         """
         Loads a set of training vectors and labels
-        
+
         Parameters
         ----------
         filename : string
@@ -354,7 +350,7 @@ class data_handler(base_class):
         Tuple containing a set of training vectors and corresponing labels
         """
         v, l = load(filename)
-        return v,l
+        return v, l
 
 
     def create_reference_file(self, input_file, output_file):
@@ -365,7 +361,7 @@ class data_handler(base_class):
         data = xr.open_dataset(input_file)
         for key in data.keys():
             if(not key == self.cloudtype_channel):
-                data =data.drop(key)
+                data = data.drop(key)
 
         data.to_netcdf(path=output_file, mode ='w')
         self.reference_file = output_file
@@ -384,12 +380,13 @@ class data_handler(base_class):
 
         set_value : bool
             If true the flag for the ncwsaf version of the input data is set accordingly
-        
+
         Returns
         -------
         string or None
             String naming the used version or None if version couldnt be determined
         """
+
         if (labels is None and filename is None):
             raise  ValueError("Label or filename must be specified")
         if (labels is None):

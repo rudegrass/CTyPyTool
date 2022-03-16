@@ -6,6 +6,9 @@ name = "pypi"
 [packages]
 requests = "*"
 numpy = "*"
+xarray = "*"
+ipykernel = "*"
+h5py = "*"
 
 [dev-packages]
 

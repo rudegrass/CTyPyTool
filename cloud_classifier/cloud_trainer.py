@@ -100,9 +100,9 @@ class cloud_trainer(base_class):
             self.classifier = tree.DecisionTreeClassifier(max_depth = self.max_depth, ccp_alpha = self.ccp_alpha)
         elif(classifier_type == "Forest"): 
             print("Training Forest Classifier")
-            self.classifier = RandomForestClassifier(n_estimators = self.n_estimators, max_depth = self.max_depth, 
+            self.classifier = make_pipeline(StandardScaler(), RandomForestClassifier(n_estimators = self.n_estimators, max_depth = self.max_depth, 
                                                  ccp_alpha = self.ccp_alpha, min_samples_split = self.min_samples_split,
-                                                 max_features = self.max_features)
+                                                 max_features = self.max_features))
         elif(classifier_type == "SVM"): 
             print("Training SVM")
             self.classifier = make_pipeline(StandardScaler(), SVC(gamma='auto'))

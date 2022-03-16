@@ -8,7 +8,6 @@ class base_class:
     Provides basic functionaltiry of parameter management and persistence 
     """
 
-
     def __init__(self, **kwargs):
 
         self.setting_files = [

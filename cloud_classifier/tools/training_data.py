@@ -10,6 +10,11 @@ Adds helper-methods for extracting machine learining data from NETCDF datasets
 """
 
 
+def new_mwthod():
+    pass
+
+
+
 def sample_training_sets(training_sets, n, indices, input_channels = [],  ct_channel = "CT", hours = [0],  
     verbose = False, refined = False):
     start = time.time()
@@ -17,8 +22,8 @@ def sample_training_sets(training_sets, n, indices, input_channels = [],  ct_cha
     Creates a sample of training vectors from NETCDF datasets
 
 
-    Samples a set of satellite data and corresponding labels at n random positions 
-    for each hour specified. 
+    Samples a set of satellite data and corresponding labels at n random positions
+    for each hour specified.
     """
 
     training_vectors = None
@@ -28,8 +33,8 @@ def sample_training_sets(training_sets, n, indices, input_channels = [],  ct_cha
     i = 0
     for t_set in training_sets:
         if(verbose):
-            i+=1
-            print("Sampling dataset " + str(i) + "/" + str(len(training_sets)) )
+            i += 1
+            print("Sampling dataset " + str(i) + "/" + str(len(training_sets)))
         #read data
         input_data = xr.open_dataset(t_set[0])
         # check if indices have benn selected
